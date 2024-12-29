@@ -38,9 +38,7 @@ android {
     dependencies {
         testImplementation("junit:junit:4.13.2")
         testImplementation("org.mockito:mockito-core:5.0.0")
-        debugImplementation files('libs/PosLibUsb-debug_1.0.16.aar')
         releaseImplementation files('libs/PosLibUsb-release_1.0.16.aar')
-        debugImplementation files('libs/SuSDK-debug_2.1.7.aar')
         releaseImplementation files('libs/SuSDK-release_2.1.7.aar')
     }
 
