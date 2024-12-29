@@ -8,6 +8,7 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.pos.susdk.SUFunctions;
@@ -87,18 +88,28 @@ public class SuSensorPlugin implements FlutterPlugin, MethodChannel.MethodCallHa
   @Override
   public void onListen(Object arguments, EventChannel.EventSink events) {
     this.eventSink = events;
-    // Make sure the sensor is started before starting the stream
+
     if (currentPortName == null) {
-      // You can start the sensor with default parameters or those passed by Flutter
-      startSensor("COM1", 100, result -> {
-        if (result.isSuccess()) {
-          startSensorStream();  // Start streaming only after the sensor is initialized
-        } else {
-          eventSink.error("START_ERROR", "Failed to start sensor", null);
+      startSensor(new MethodCall("startSensor", null), new MethodChannel.Result() {
+        @Override
+        public void success(Object result) {
+          startSensorStream();
+        }
+
+        @Override
+        public void error(String errorCode, String errorMessage, Object errorDetails) {
+          if (eventSink != null) {
+            eventSink.error(errorCode, errorMessage, errorDetails);
+          }
+        }
+
+        @Override
+        public void notImplemented() {
+          // Not applicable here
         }
       });
     } else {
-      startSensorStream();  // If already started, just start streaming
+      startSensorStream();
     }
   }
 
@@ -110,7 +121,13 @@ public class SuSensorPlugin implements FlutterPlugin, MethodChannel.MethodCallHa
 
   private void startSensor(MethodCall call, MethodChannel.Result result) {
     String portName = call.argument("portName");
-    int irLevel = call.argument("irLevel");
+    Integer irLevel = call.argument("irLevel");
+
+    if (portName == null || irLevel == null) {
+      result.error("INVALID_ARGUMENTS", "Port name or IR level is null", null);
+      return;
+    }
+
     int openResult = SUFunctions.OpenPort(portName);
     if (openResult == 0) {
       SUFunctions.SetThresholdValue(portName, irLevel);
@@ -177,18 +194,17 @@ public class SuSensorPlugin implements FlutterPlugin, MethodChannel.MethodCallHa
   }
 
   private void initializeUsb(MethodChannel.Result result) {
-    // Check for already connected devices and request permission if needed
     for (UsbDevice device : usbManager.getDeviceList().values()) {
-      if (usbManager.hasPermission(device)) {
-        connectedDevices.add(device);
-      } else {
+      if (!usbManager.hasPermission(device)) {
         usbManager.requestPermission(device, permissionIntent);
+      } else if (!connectedDevices.contains(device)) {
+        connectedDevices.add(device);
       }
     }
 
     IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
     context.registerReceiver(usbReceiver, filter);
-    result.success(null);
+    result.success(connectedDevices.size());
   }
 
   private void cleanupUsb(MethodChannel.Result result) {
@@ -197,7 +213,11 @@ public class SuSensorPlugin implements FlutterPlugin, MethodChannel.MethodCallHa
   }
 
   private void cleanupUsbResources() {
-    context.unregisterReceiver(usbReceiver);
+    try {
+      context.unregisterReceiver(usbReceiver);
+    } catch (IllegalArgumentException e) {
+      Log.w("SuSensorPlugin", "Receiver not registered: " + e.getMessage());
+    }
   }
 
   private final android.content.BroadcastReceiver usbReceiver = new android.content.BroadcastReceiver() {
@@ -206,7 +226,13 @@ public class SuSensorPlugin implements FlutterPlugin, MethodChannel.MethodCallHa
       String action = intent.getAction();
       if (ACTION_USB_PERMISSION.equals(action)) {
         synchronized (this) {
-          UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+          UsbDevice device;
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice.class);
+          } else {
+            device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+          }
+
           if (device != null && intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
             connectedDevices.add(device);
           }
