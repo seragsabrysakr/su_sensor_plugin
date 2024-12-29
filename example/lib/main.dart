@@ -1,37 +1,39 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-
-import 'package:flutter/services.dart';
 import 'package:su_sensor_plugin/su_sensor_plugin.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
-
+class SensorPage extends StatefulWidget {
   @override
-  State<MyApp> createState() => _MyAppState();
+  _SensorPageState createState() => _SensorPageState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _SensorPageState extends State<SensorPage> {
   @override
   void initState() {
     super.initState();
-  }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
+    // Start the sensor when the page is initialized
+    SuSensorPlugin.startSensor('COM1', 100);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Center(
-          child: Text('Running on:'),
+    return Scaffold(
+      appBar: AppBar(title: Text("Sensor Data")),
+      body: Center(
+        child: StreamBuilder<int>(
+          stream: SuSensorPlugin.listenToSensorStream(), // Listen to the sensor stream
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return CircularProgressIndicator(); // Show loading indicator while waiting for data
+            } else if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}'); // Show error if there's any
+            } else if (!snapshot.hasData) {
+              return Text('No data received'); // Show message if no data is received
+            } else {
+              // Show the sensor value when data is received
+              return Text("Sensor Value: ${snapshot.data}");
+            }
+          },
         ),
       ),
     );

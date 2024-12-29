@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 
 class SuSensorPlugin {
   static const MethodChannel _channel = MethodChannel('su_sensor_plugin');
+  static const EventChannel _sensorStreamChannel = EventChannel('su_sensor_plugin/sensor_stream');
 
   /// Starts the sensor.
   static Future<void> startSensor(String portName, int irLevel) async {
@@ -31,5 +32,11 @@ class SuSensorPlugin {
   /// Cleans up USB resources.
   static Future<void> cleanupUsb() async {
     await _channel.invokeMethod('cleanupUsb');
+  }
+
+  static Stream<int> listenToSensorStream() {
+    return _sensorStreamChannel.receiveBroadcastStream().map((sensorValue) {
+      return sensorValue as int;
+    });
   }
 }
