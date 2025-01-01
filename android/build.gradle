@@ -16,9 +16,9 @@ rootProject.allprojects {
     repositories {
         google()
         mavenCentral()
-        flatDir {
-        dirs 'libs'
-    }
+       flatDir {
+            dirs project(':su_sensor_plugin').file('libs')
+        }
     }
 }
 
@@ -37,13 +37,14 @@ android {
     defaultConfig {
         minSdk = 21
     }
-
 dependencies {
-        implementation(name: 'PosLibUsb-release_1.0.16', ext: 'aar')
+            implementation(name: 'PosLibUsb-release_1.0.16', ext: 'aar')
     implementation(name: 'SuSDK-release_2.1.7', ext: 'aar')
-    testImplementation "junit:junit:4.13.2"
-    testImplementation "org.mockito:mockito-core:5.0.0"
-
+ 
+    implementation "com.google.android.material:material:1.7.0"
+    implementation "androidx.appcompat:appcompat:1.5.1"
+ 
+    implementation "androidx.browser:browser:1.4.0"
 }
 
     testOptions {

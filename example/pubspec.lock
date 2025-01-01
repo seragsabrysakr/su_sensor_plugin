@@ -254,6 +254,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.3"
+  usb_serial:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: master
+      resolved-ref: f67142be60261d59736af9fcdab21c44d32352a4
+      url: "https://github.com/jymden/usbserial.git"
+    source: git
+    version: "0.5.1"
   vector_math:
     dependency: transitive
     description:
